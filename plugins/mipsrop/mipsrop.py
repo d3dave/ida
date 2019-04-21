@@ -471,6 +471,21 @@ class MIPSROPFinder(object):
 
         return rop_gadgets
 
+    def _parse_instruction(self, instruction_string):
+        registers = ['$v', '$s', '$a', '$t', '$k', '$pc', '$fp', '$ra', '$gp', '$at', '$zero']
+        comma_split = instruction_string.split(',')
+        instruction_parts = comma_split[0].split()
+        if len(comma_split) > 1:
+            instruction_parts += comma_split[1:]
+        for i in range(0, 4):
+            if i > len(instruction_parts) - 1:
+                instruction_parts.append(None)
+            else:
+                instruction_parts[i] = instruction_parts[i].strip().strip(',').strip()
+                for reg in registers:
+                    instruction_parts[i] = instruction_parts[i].replace(reg, "\\%s" % reg)
+        return MIPSInstruction(instruction_parts[0], instruction_parts[1], instruction_parts[2], instruction_parts[3])
+
     def double(self):
         self.doubles()
 
@@ -536,23 +551,8 @@ class MIPSROPFinder(object):
         count = 0
         good_gadgets = {}
         final_gadgets = []
-        registers = ['$v', '$s', '$a', '$t', '$k', '$pc', '$fp', '$ra', '$gp', '$at', '$zero']
-
         for instruction_string in args:
-            comma_split = instruction_string.split(',')
-            instruction_parts = comma_split[0].split()
-            if len(comma_split) > 1:
-                instruction_parts += comma_split[1:]
-
-            for i in range(0, 4):
-                if i > len(instruction_parts) - 1:
-                    instruction_parts.append(None)
-                else:
-                    instruction_parts[i] = instruction_parts[i].strip().strip(',').strip()
-                    for reg in registers:
-                        instruction_parts[i] = instruction_parts[i].replace(reg, "\\%s" % reg)
-
-            instruction = MIPSInstruction(instruction_parts[0], instruction_parts[1], instruction_parts[2], instruction_parts[3])
+            instruction = self._parse_instruction(instruction_string)
             gadgets = self._find_rop_gadgets(instruction)
             for gadget in gadgets:
                 if count == 0:
